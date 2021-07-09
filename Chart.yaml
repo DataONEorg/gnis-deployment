@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gnis
+description: A Helm chart for deploying the gnis stack
+
+appVersion: "1.0.0"
+version: 0.1.0

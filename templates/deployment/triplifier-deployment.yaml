@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triplifier
+  labels:
+    app: triplifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triplifier
+  template:
+    metadata:
+      labels:
+        app: triplifier
+    spec:
+      containers:
+      - name: triplifier
+        image: bregalia/usgs-triplifier
+        ports:
+        - containerPort: 8890
+        volumeMounts:
+        - mountPath: /data
+          name: triplifier-pv
+      volumes:
+        - name: triplifier-pv
+          persistentVolumeClaim:
+            claimName: gnis-pvc

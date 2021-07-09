@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphdb
+  labels:
+    app: graphdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphdb
+  template:
+    metadata:
+      labels:
+        app: graphdb
+    spec:
+      containers:
+      - name: graphdb
+        image: ontotext/graphdb:9.8.0-se
+        ports:
+        - containerPort: 8890
+        volumeMounts:
+        - mountPath: /data
+          name: gnis-pvc
+      volumes:
+        - name: gnis-pvc
+          persistentVolumeClaim:
+            claimName: gnis-pvc
