@@ -5,7 +5,7 @@ metadata:
   namespace: gnis
   name: gnis-pvc
 spec:
-  storageClassName: ""
+  storageClassName: "manual"
   accessModes:
     - ReadWriteMany
   resources:
