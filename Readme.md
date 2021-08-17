@@ -12,6 +12,10 @@ To create the service to expose the webapp run,
 
 `kubectl apply -f templates/service/gnis-service.yaml`
 
+To perform a rolling update run,
+
+ `kubectl rollout restart deployment gnis`
+
 #### Debugging
 There are a few commands that will come in handy while debugging the stack.
 
@@ -31,3 +35,11 @@ To get a shell in a running pod, run
 To get a shell in a container, inside a pod, run
 
 `kubectl exec -n gnis -it pod/<pod-name> -c <container-name> -- /bin/sh`
+
+For debugging networking, the following are useful
+
+`kubectl describe virtualserver -n nginx-ingress`
+
+`kubectl describe virtualserverroute -n gnis`
+
+`kubectl describe service/gnis -n gnis`
