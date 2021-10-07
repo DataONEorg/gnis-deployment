@@ -12,4 +12,7 @@ spec:
   subroutes:
   - path: /gnis
     action:
-      pass: gnis
+    #  pass: gnis
+      proxy:
+        upstream: gnis
+        rewritePath: /

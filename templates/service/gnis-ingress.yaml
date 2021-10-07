@@ -26,6 +26,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: gnis-ld
+            name: gnis
             port:
               number: 80
