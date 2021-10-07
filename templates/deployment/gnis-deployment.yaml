@@ -39,7 +39,8 @@ spec:
             port: 7200
 
       - name: triplifier
-        image: thomasthelen/triplifier:latest
+        image: thomasthelen/triplifier
+        imagePullPolicy: "Always"
         command: ["npm","run"]
         args: ["update"]
         env:
@@ -48,13 +49,15 @@ spec:
         - name: PGPASSWORD
           value: "docker"
         - name: PGHOST
-          value: "http://localhost"
+          value: "localhost"
         - name: PGPORT
           value: "5432"
         - name: PGDATABASE
           value: "gis"
         - name: USGS_DATA_HOST
-          value: "http://gnis-ld.org"
+          value: "stage.gnis-ld.org"
+        - name: S_DATA_HOST
+          value: "stage.gnis-ld.org"
         - name: GDBHOST
           value: "http://localhost"
         - name: GDBPASSWORD
@@ -67,6 +70,7 @@ spec:
 
       - name: gnis-ld
         image: thomasthelen/gnis-ld
+        imagePullPolicy: "Always"
         env:
         - name: PGUSER
           value: "script"
@@ -79,12 +83,12 @@ spec:
         - name: PGDATABASE
           value: "gis"
         - name: USGS_DATA_HOST
-          value: "12345676543234567834567"
+          value: "stage.gnis-ld.org"
         - name: "USGS_ENDPOINT_URL"
-          value: "http://localhost:7200/repositories/gnis-ld"
+          value: "http://localhost:7200"
         ports:
         - containerPort: 80
-
+        
       - name: postgis
         image: kartoza/postgis:10.0-2.4
         readinessProbe:
@@ -101,3 +105,4 @@ spec:
         - name: gnis-pvc
           persistentVolumeClaim:
             claimName: gnis-pvc
+
