@@ -25,11 +25,11 @@ If there isn't, create the Persistent Volume (PV) and the Volume Claim (PVC). Th
 
 Once the PV & PVC exist create the deployment,
 
-`kubectl apply -f templates/deployment/gnis-deployment.yaml`
+`kubectl apply -f deployment/gnis-deployment.yaml`
 
 To create the service to expose the webapp,
 
-`kubectl apply -f templates/service/gnis-service.yaml`
+`kubectl apply -f networking/gnis-service.yaml`
 
 To perform a rolling update run,
 

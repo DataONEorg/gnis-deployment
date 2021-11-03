@@ -55,9 +55,9 @@ spec:
         - name: PGDATABASE
           value: "gis"
         - name: USGS_DATA_HOST
-          value: "stage.gnis-ld.org"
+          value: "https://stage.gnis-ld.org"
         - name: S_DATA_HOST
-          value: "stage.gnis-ld.org"
+          value: "/"
         - name: GDBHOST
           value: "http://localhost"
         - name: GDBPASSWORD
@@ -69,7 +69,7 @@ spec:
           name: gnis-pvc
 
       - name: gnis-ld
-        image: thomasthelen/gnis-ld
+        image: thomasthelen/gnis-ld:dev
         imagePullPolicy: "Always"
         env:
         - name: PGUSER
@@ -82,8 +82,10 @@ spec:
           value: "5432"
         - name: PGDATABASE
           value: "gis"
-        - name: USGS_DATA_HOST
+        - name: BASE
           value: "stage.gnis-ld.org"
+        - name: USGS_DATA_PATH
+          value: "/"
         - name: "USGS_ENDPOINT_URL"
           value: "http://localhost:7200"
         ports:
@@ -105,4 +107,3 @@ spec:
         - name: gnis-pvc
           persistentVolumeClaim:
             claimName: gnis-pvc
-
