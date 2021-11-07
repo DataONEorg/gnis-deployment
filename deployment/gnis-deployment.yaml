@@ -28,7 +28,7 @@ spec:
         - containerPort: 7200
         volumeMounts:
         - mountPath: /root
-          name: gnis-pvc
+          name: gnis-volume
         readinessProbe:
           initialDelaySeconds: 5400
           periodSeconds: 10
@@ -66,7 +66,7 @@ spec:
         - containerPort: 8890
         volumeMounts:
         - mountPath: /root
-          name: gnis-pvc
+          name: gnis-volume
 
       - name: gnis-ld
         image: thomasthelen/gnis-ld:dev
@@ -104,6 +104,6 @@ spec:
         ports:
         - containerPort: 5432
       volumes:
-        - name: gnis-pvc
+        - name: gnis-volume
           persistentVolumeClaim:
-            claimName: gnis-pvc
+            claimName: cephfs-gnis-pvc
