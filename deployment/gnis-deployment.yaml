@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: graphdb
-        image: thomasthelen/graphdb:9.6.0-free
+        image: gnislinkeddata/graphdb
         ports:
         - containerPort: 7200
         volumeMounts:
@@ -39,7 +39,7 @@ spec:
             port: 7200
 
       - name: triplifier
-        image: thomasthelen/triplifier
+        image: gnislinkeddata/triplifier
         imagePullPolicy: "Always"
         command: ["npm","run"]
         args: ["update"]
@@ -55,7 +55,7 @@ spec:
         - name: PGDATABASE
           value: "gis"
         - name: USGS_DATA_HOST
-          value: "https://stage.gnis-ld.org"
+          value: "stage.gnis-ld.org"
         - name: S_DATA_HOST
           value: "/"
         - name: GDBHOST
@@ -69,7 +69,7 @@ spec:
           name: gnis-volume
 
       - name: gnis-ld
-        image: thomasthelen/gnis-ld:dev
+        image: gnislinkeddata/gnis-ld:dev
         imagePullPolicy: "Always"
         env:
         - name: PGUSER
