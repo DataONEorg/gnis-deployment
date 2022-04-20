@@ -54,10 +54,8 @@ spec:
           value: "5432"
         - name: PGDATABASE
           value: "gis"
-        - name: USGS_DATA_HOST
-          value: "stage.gnis-ld.org"
-        - name: S_DATA_HOST
-          value: "/"
+        - name: DEPLOYMENT_HOST
+          value: "http://stage.gnis-ld.org"
         - name: GDBHOST
           value: "http://localhost"
         - name: GDBPASSWORD
@@ -85,7 +83,7 @@ spec:
         - name: BASE
           value: "stage.gnis-ld.org"
         - name: USGS_DATA_PATH
-          value: "/"
+          value: "/lod"
         - name: "USGS_ENDPOINT_URL"
           value: "http://localhost:7200"
         ports:
