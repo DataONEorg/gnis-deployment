@@ -1,0 +1,176 @@
+# Default values for the gnis chart.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Public hostname of the deployment. Every minted URI (LOD_BASE, GEO_BASE)
+# and public link derives from this, so a staging install must override it
+# (e.g. --set host=stage.gnis-ld.org) before its first ETL run.
+host: gnis-ld.org
+
+replicaCount: 1
+
+imagePullSecrets: []
+
+image:
+  repository: ghcr.io/dataoneorg/gnis-graphdb
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# GraphDB holds an exclusive lock on its storage volume; never let two pods
+# overlap on it.
+strategy:
+  type: Recreate
+
+graphdb:
+  port: 7200
+  # After an unclean shutdown GraphDB replays its transaction journal, which
+  # can take minutes on a multi-gigabyte repository. The generous
+  # failureThreshold keeps the pod merely unready (no traffic) for the whole
+  # recovery. Do NOT add a liveness probe here without a matching startup
+  # allowance: it would kill the pod mid-recovery and loop it.
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 30
+  # Serving needs far less memory than the ETL: GraphDB idles ~1-2Gi with the
+  # full dataset loaded.
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      memory: 6Gi
+
+# The ETL (download -> triplify -> import) runs as a CronJob against the
+# GraphDB service, sharing the PVC for the import directory. Trigger the
+# first load manually after install:
+#   kubectl -n <ns> create job --from=cronjob/<release>-etl initial-load
+etl:
+  enabled: true
+  # First day of every third month at midnight
+  schedule: "0 0 1 */3 *"
+  # Set false to skip the remote data download and reuse data already on the PVC
+  downloadData: true
+  # GraphDB admin password. Required unless existingSecret names a secret
+  # with a 'gdb-pass' key.
+  gdbPassword: ""
+  existingSecret: ""
+  env:
+    LOD_BASE: "http://{{ .Values.host }}/lod"
+    GEO_BASE: "http://{{ .Values.host }}/geometry"
+    GNIS_INPUT_DIRECTORY: "/app/data/geographic_names"
+    RDF_OUTPUT_DIRECTORY: "/app/data/output/gnis"
+    GRAPHDB_IMPORT_DIRECTORY: "/root/graphdb-import"
+    # Location to write archives to
+    ARCHIVE_OUTPUT_DIRECTORY: "/app/archive"
+    # Public base for release download URLs in the dataset metadata
+    SITE_BASE: "https://{{ .Values.host }}"
+    GDB_USER: "admin"
+    GDB_DEFAULT_PASS: "root"
+  backoffLimit: 2
+  # Measured on the streaming pipeline: a full archive backfill (2.3M
+  # features, the largest workload) peaks at 6.4Gi; the quarterly run is
+  # smaller. The dedup digest set and the GeoNames pandas join are the
+  # biggest residents.
+  resources:
+    requests:
+      cpu: "1"
+      memory: 4Gi
+    limits:
+      memory: 10Gi
+
+persistence:
+  enabled: true
+  # Set to reuse a PVC created outside the chart.
+  existingClaim: ""
+  storage: 75Gi
+  # Must be RWX (e.g. CephFS) when the ETL job can land on a different node
+  # than GraphDB; RWO works on single-node clusters (minikube).
+  accessModes:
+    - ReadWriteMany
+  # Static CephFS PersistentVolume.
+  pv:
+    enabled: true
+    csi:
+      driver: cephfs.csi.ceph.com
+      nodeStageSecretRef:
+        name: csi-cephfs-gnis-secret
+        namespace: ceph-csi-cephfs
+      volumeAttributes:
+        clusterID: "8aa4d4a0-a209-11ea-baf5-ffc787bfc812"
+        fsName: "cephfs"
+        staticVolume: "true"
+        rootPath: /volumes/k8s-dev-gnis-subvol-group/k8s-dev-gnis-subvol/30037f7e-314f-41d8-ad0a-b1ea4c838a34
+    reclaimPolicy: Retain
+
+  # The published release archive gets its own volume: everything on the
+  # main volume above can be rebuilt by re-running the ETL, but the archived
+  # dumps are the system of record for retention and lineage and cannot be
+  # regenerated. Keeping them apart means the main volume can be wiped or
+  # resized freely, and the backup policy only has to cover this claim.
+  # Point existingClaim at a Retain-class volume in production, or enable
+  # the static PV below with a dedicated subvolume rootPath.
+  archives:
+    existingClaim: ""
+    storage: 25Gi
+    accessModes:
+      - ReadWriteMany
+    pv:
+      enabled: false
+      csi:
+        driver: cephfs.csi.ceph.com
+        nodeStageSecretRef:
+          name: csi-cephfs-gnis-secret
+          namespace: ceph-csi-cephfs
+        volumeAttributes:
+          clusterID: "8aa4d4a0-a209-11ea-baf5-ffc787bfc812"
+          fsName: "cephfs"
+          staticVolume: "true"
+          rootPath: ""
+      reclaimPolicy: Retain
+
+# The public website: URI dereferencing, search/explore UI, the release
+# archive at /archive, and the /sparql proxy to GraphDB.
+webapp:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/dataoneorg/gnis-ld
+    tag: latest
+    pullPolicy: IfNotPresent
+  # The Express server's listen port.
+  port: 3006
+  env: {}
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+# GraphDB's in-cluster service, used by the ETL job and the webapp's
+# /sparql and /data proxies. Not exposed publicly.
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 7200
+  sessionAffinity: ClientIP
+  sessionAffinityTimeoutSeconds: 10800
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "$http_origin"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: true
+    secretName: ingress-nginx-tls-cert

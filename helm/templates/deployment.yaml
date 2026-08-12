@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gnis.fullname" . }}
+  labels:
+    {{- include "gnis.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "gnis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gnis.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        # The image's default entrypoint starts GraphDB only; the ETL runs
+        # separately as the CronJob in etl-cronjob.yaml.
+        - name: graphdb
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.graphdb.port }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            # GraphDB 10 keeps repositories, settings, and logs under its
+            # home directory; mounting anywhere else leaves the live graph
+            # on ephemeral container storage.
+            - mountPath: /opt/graphdb/home
+              name: gnis-volume
+              subPath: graphdb-data
+            - mountPath: /root/graphdb-import
+              name: gnis-volume
+              subPath: graphdb-import
+          {{- end }}
+          readinessProbe:
+            {{- toYaml .Values.graphdb.readinessProbe | nindent 12 }}
+            tcpSocket:
+              port: {{ .Values.graphdb.port }}
+          {{- with .Values.graphdb.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: gnis-volume
+          persistentVolumeClaim:
+            claimName: {{ include "gnis.pvcName" . }}
+      {{- end }}
